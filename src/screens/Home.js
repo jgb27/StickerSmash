@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import * as MediaLibrary from 'expo-media-library';
+
+import { useState, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import * as ImagePicker from 'expo-image-picker';
+import { captureRef } from 'react-native-view-shot';
 
 // components
 import ImageViewer from '../components/ImageViewer';
@@ -16,11 +19,18 @@ import EmojiSticker from '../components/EmojiSticker';
 const PlaceholderImage = require('../../assets/background-image.png');
 
 export default function Home() {
+  const imageRef = useRef();
+
+  const [status, requestPermission] = MediaLibrary.usePermissions();
   const [selectedImage, setSelectedImage] = useState(null);
   const [showOptions, setShowOptions] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [pickedEmoji, setPickedEmoji] = useState(null);
   const [stickerList, setStickerList] = useState([]);
+
+  if (status === null) {
+    requestPermission();
+  }
 
   const onReset = () => {
     setShowOptions(false);
@@ -35,7 +45,19 @@ export default function Home() {
   };
 
   const onSaveImageAsync = async () => {
-    setIsModalVisible(false);
+    try {
+      const localUri = await captureRef(imageRef, {
+        height: 440,
+        quality: 1,
+      });
+
+      await MediaLibrary.saveToLibraryAsync(localUri);
+      if (localUri) {
+        alert("Saved!");
+      }
+    } catch (e) {
+      console.log(e);
+    }
   };
 
   const onAddList = (emoji) => {
@@ -56,24 +78,28 @@ export default function Home() {
     }
   };
 
+
+
   return (
     <GestureHandlerRootView style={styles.container}>
       <View style={styles.imageContainer}>
-        <ImageViewer
-          image={PlaceholderImage}
-          selectedImage={selectedImage}
-        />
-        {pickedEmoji
-          &&
-          (
-            stickerList.map((sticker, index) => (
-              <EmojiSticker
-                key={index}
-                imageSize={40}
-                stickerSource={sticker}
-              />
-            ))
-          )}
+        <View ref={imageRef} collapsable={false}>
+          <ImageViewer
+            image={PlaceholderImage}
+            selectedImage={selectedImage}
+          />
+          {pickedEmoji
+            &&
+            (
+              stickerList.map((sticker, index) => (
+                <EmojiSticker
+                  key={index}
+                  imageSize={40}
+                  stickerSource={sticker}
+                />
+              ))
+            )}
+        </View>
       </View>
       {showOptions ? (
         <View style={styles.optionsContainer}>
@@ -86,7 +112,7 @@ export default function Home() {
       ) : (
         <View style={styles.footerContainer}>
           <Button theme="primary" label="Choose a photo" onPress={pickImageAsync} />
-          <Button label="Use this photo" onPress={() => setShowOptions(true)} />
+          <Button label="Use this photo" onPress={() => { setShowOptions(true); }} />
         </View>
       )}
       <EmojiPicker isVisible={isModalVisible} onClose={onModalClose}>

@@ -14,6 +14,19 @@ export default function EmojiSticker({ imageSize, stickerSource }) {
       }
     });
 
+  const removeTap = Gesture.Tap()
+    .numberOfTaps(3)
+    .onStart(() => {
+      if (scaleImage.value !== imageSize / 2) {
+        scaleImage.value = scaleImage.value / 2;
+      }
+    });
+
+  const longPress = Gesture.LongPress()
+    .onStart(() => {
+      scaleImage.value = 0;
+    });
+
   const imageStyle = useAnimatedStyle(() => {
     return {
       width: withSpring(scaleImage.value),
@@ -45,11 +58,15 @@ export default function EmojiSticker({ imageSize, stickerSource }) {
       <Animated.View style={[containerStyle, { top: -350 }]}>
 
         <GestureDetector gesture={doubleTap}>
-          <Animated.Image
-            source={stickerSource}
-            resizeMode="contain"
-            style={[imageStyle, { width: imageSize, height: imageSize }]}
-          />
+          <GestureDetector gesture={longPress}>
+            <GestureDetector gesture={removeTap}>
+              <Animated.Image
+                source={stickerSource}
+                resizeMode="contain"
+                style={[imageStyle, { width: imageSize, height: imageSize }]}
+              />
+            </GestureDetector>
+          </GestureDetector>
         </GestureDetector>
       </Animated.View>
     </GestureDetector>
